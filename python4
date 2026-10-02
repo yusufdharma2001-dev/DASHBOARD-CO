@@ -1,0 +1,31 @@
+import json
+
+def load_all_data():
+    # INSENTIF
+    df_ins = pd.read_excel(excel_path, sheet_name='INSENTIF', header=2)
+    df_ins = df_ins.dropna(subset=['NAMA COLL'])
+    
+    # Helper to clean/convert dataframe for transaction sheets
+    def parse_tx_sheet(sheet_name, header_row, coll_col_idx):
+        df = pd.read_excel(excel_path, sheet_name=sheet_name, header=header_row)
+        # Columns typically: Unnamed: 0, COLL FE/MR, NAMA KONSUMEN, TIPE BARANG, ANGSURAN KE, TGL JATUH TEMPO TERAKHIR, SIPOK
+        cols = list(df.columns)
+        # Rename standard columns based on position or name
+        # Let's inspect columns first
+        return df
+
+    tx_sheets = {}
+    for sh, hdr in [('NOOD', 4), ('1_30', 5), ('31_60', 5), ('BAYAR NOOD', 5), ('BAYAR 1_30', 6), ('BAYAR 31_60', 7)]:
+        df = pd.read_excel(excel_path, sheet_name=sh, header=hdr)
+        # clean column names
+        df = df.iloc[:, 1:].copy() # drop first unnamed col if any
+        if df.shape[1] >= 6:
+            df.columns = ['Collector', 'Nama Konsumen', 'Tipe Barang', 'Angsuran Ke', 'Jatuh Tempo', 'Sipok']
+        tx_sheets[sh] = df
+    return df_ins, tx_sheets
+
+df_ins, tx_sheets = load_all_data()
+print("Insentif columns:", df_ins.columns.tolist())
+for sh, df in tx_sheets.items():
+    print(f"\nSheet {sh} columns:", df.columns.tolist(), "rows:", len(df))
+    print(df.head(2))
