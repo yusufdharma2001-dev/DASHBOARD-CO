@@ -1,0 +1,9 @@
+excel_path = 'Workbook2.xlsx'
+xls = pd.ExcelFile(excel_path)
+for sh in xls.sheet_names:
+    df = pd.read_excel(excel_path, sheet_name=sh, header=None)
+    print(f"\nSheet: {sh}, shape: {df.shape}")
+    for i in range(min(8, len(df))):
+        row_vals = [str(v) for v in df.iloc[i].values if pd.notna(v)]
+        if row_vals:
+            print(f"  Row {i}: {row_vals[:6]}")
