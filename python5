@@ -1,0 +1,13 @@
+# Clean string columns in transaction sheets
+for sh in tx_sheets:
+    df = tx_sheets[sh]
+    df['Collector'] = df['Collector'].astype(str).str.strip()
+    df['Nama Konsumen'] = df['Nama Konsumen'].astype(str).str.strip()
+    df['Tipe Barang'] = df['Tipe Barang'].astype(str).str.strip()
+    df['Sipok'] = pd.to_numeric(df['Sipok'], errors='coerce').fillna(0)
+    df['Angsuran Ke'] = pd.to_numeric(df['Angsuran Ke'], errors='coerce').fillna(0)
+    df['Jatuh Tempo'] = pd.to_datetime(df['Jatuh Tempo'], errors='coerce').dt.strftime('%Y-%m-%d').fillna('-')
+    tx_sheets[sh] = df
+
+df_ins['NAMA COLL'] = df_ins['NAMA COLL'].astype(str).str.strip()
+print("Cleaned successfully.")
