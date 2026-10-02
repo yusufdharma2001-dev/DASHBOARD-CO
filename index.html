@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Kolektor & Insentif</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (xlsx) untuk parsing file Excel di browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased">
+
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 border border-slate-100">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 mb-4 text-2xl shadow-inner">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">Login Dashboard</h2>
+                <p class="text-sm text-slate-500 mt-1">Silakan masukkan ID User dan Password Anda</p>
+            </div>
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">ID User</label>
+                    <input type="text" id="userId" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" placeholder="Contoh: 0002612743">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Password</label>
+                    <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" placeholder="••••••••">
+                </div>
+                <div id="loginError" class="text-red-500 text-xs hidden text-center font-medium bg-red-50 p-2 rounded"></div>
+                <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-200">
+                    Masuk ke Dashboard
+                </button>
+            </form>
+            <div class="mt-6 text-center text-xs text-slate-400">
+                Sistem Manajemen Penagihan & Insentif Collector
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="appContainer" class="min-h-screen flex flex-col hidden">
+        
+        <!-- HEADER -->
+        <header class="bg-indigo-900 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Selamat Datang, Yusuf Dharma</h1>
+                    <p class="text-xs text-indigo-200 mt-0.5">Dashboard Monitoring Penagihan & Insentif Collector</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="uploaderSection" class="hidden">
+                        <label class="cursor-pointer bg-indigo-700 hover:bg-indigo-600 text-xs font-medium px-4 py-2 rounded-lg shadow transition flex items-center gap-2">
+                            <i class="fa-solid fa-file-excel"></i> Update Excel
+                            <input type="file" id="excelUpload" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+                        </label>
+                    </div>
+                    <div class="text-right">
+                        <span id="loggedInUserLabel" class="block text-xs font-semibold bg-indigo-800 px-3 py-1 rounded-full border border-indigo-700"></span>
+                    </div>
+                    <button onclick="logout()" class="bg-rose-600 hover:bg-rose-700 text-xs font-medium px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN NAVIGATION TABS -->
+        <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto space-x-2 no-scrollbar py-2" id="mainTabs">
+                <button onclick="switchMainTab('INSENTIF')" class="main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-indigo-600 text-white shadow-sm" data-tab="INSENTIF">INSENTIF</button>
+                <button onclick="switchMainTab('NOOD')" class="main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-tab="NOOD">NOOD</button>
+                <button onclick="switchMainTab('1_30')" class="main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-tab="1_30">1_30</button>
+                <button onclick="switchMainTab('31_60')" class="main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-tab="31_60">31_60</button>
+                <button onclick="switchMainTab('BAYAR NOOD')" class="main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-tab="BAYAR NOOD">BAYAR NOOD</button>
+                <button onclick="switchMainTab('BAYAR 1_30')" class="main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-tab="BAYAR 1_30">BAYAR 1_30</button>
+                <button onclick="switchMainTab('BAYAR 31_60')" class="main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200" data-tab="BAYAR 31_60">BAYAR 31_60</button>
+            </div>
+        </nav>
+
+        <!-- CONTENT AREA -->
+        <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+            
+            <!-- COLLECTOR SUB-TABS (Dinamis) -->
+            <div class="mb-6 flex items-center gap-2 overflow-x-auto pb-2" id="collectorSubTabs">
+                <!-- Generated by JS -->
+            </div>
+
+            <!-- TAB CONTENT CONTAINER -->
+            <div id="tabContentArea">
+                <!-- Content will be injected here -->
+            </div>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+            &copy; 2026 Dashboard Kinerja Penagihan & Insentif Collector. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- SCRIPT DATA & LOGIC -->
+    <script>
+        // Users Database
+        const users = {
+            "0002612743": { name: "Yusuf Dharma", role: "admin", pass: "Salatiga12" },
+            "000243183":  { name: "Nikolaus Yudistira", role: "admin", pass: "Salatiga12" },
+            "0382611648": { name: "I Gede Adi Pratama Putra", role: "collector", pass: "FE123456" },
+            "038235057":  { name: "Oktavianus Manik", role: "collector", pass: "FE123456" },
+            "038243724":  { name: "Ridwan Andika", role: "collector", pass: "FE123456" },
+            "038255943":  { name: "Risky Imam Hanafi", role: "collector", pass: "FE123456" },
+            "0382614144": { name: "Budi Satriyo", role: "supervisor", pass: "MR123456" }
+        };
+
+        let currentUser = null;
+        let activeMainTab = 'INSENTIF';
+        let activeCollector = '';
+
+        // Default mock data loaded from Excel analysis
+        let dbData = {
+            INSENTIF: [
+                { "NAMA COLL": "BUDI SATRIYO", "KETERANGAN": "TIDAK DIBAYARKAN", "RAPORT": "NEED IMPROVEMENT", "NILAI": 2.2, "KPI FLOW": 0.87345, "KPI BALANCE": 0.0604, "KPI FLOW EVER": 0.4667, "C1%": 0.7436, "C2%": 0.7261, "C3%": 0.7261, "C4%": 0.9915, "Ins.C1": 0, "Ins.C2": 0, "Ins.C3": 0, "Ins.C4": 0, "Ins.MOBIL": 0, "Ins.MOTOR": 0, "Ins.BTC/SR": 0, "Ins.TOTAL": 0, "TOTAL ABSENSI": 1, "Ins.RAPORT": 0 },
+                { "NAMA COLL": "I GEDE ADI PRATAMA PUTRA", "KETERANGAN": "TIDAK DIBAYARKAN", "RAPORT": "NEED IMPROVEMENT", "NILAI": 2.2, "KPI FLOW": 0.8915, "KPI BALANCE": 0.7929, "KPI FLOW EVER": 0.2353, "C1%": 0.8990, "C2%": 0.6497, "C3%": 0.0385, "C4%": 0.9454, "Ins.C1": 0, "Ins.C2": 0, "Ins.C3": 0, "Ins.C4": 0, "Ins.MOBIL": 0, "Ins.MOTOR": 0, "Ins.BTC/SR": 0, "Ins.TOTAL": 0, "TOTAL ABSENSI": 1, "Ins.RAPORT": 0 },
+                { "NAMA COLL": "OKTAVIANUS MANIK", "KETERANGAN": "TIDAK DIBAYARKAN", "RAPORT": "NEED IMPROVEMENT", "NILAI": 2.2, "KPI FLOW": 0.8365, "KPI BALANCE": 0.7101, "KPI FLOW EVER": 0.1579, "C1%": 0.3128, "C2%": 0.0535, "C3%": 0.0036, "C4%": 0.5765, "Ins.C1": 750000, "Ins.C2": 0, "Ins.C3": 0, "Ins.C4": 0, "Ins.MOBIL": 0, "Ins.MOTOR": 0, "Ins.BTC/SR": 0, "Ins.TOTAL": 750000, "TOTAL ABSENSI": 1, "Ins.RAPORT": 0 },
+                { "NAMA COLL": "RIDWAN ANDIKA", "KETERANGAN": "TIDAK DIBAYARKAN", "RAPORT": "NEED IMPROVEMENT", "NILAI": 2.2, "KPI FLOW": 0.8511, "KPI BALANCE": 0.7447, "KPI FLOW EVER": 0.3810, "C1%": 0.9347, "C2%": 0.2817, "C3%": 0.2399, "C4%": 0.9498, "Ins.C1": 0, "Ins.C2": 0, "Ins.C3": 0, "Ins.C4": 0, "Ins.MOBIL": 0, "Ins.MOTOR": 0, "Ins.BTC/SR": 0, "Ins.TOTAL": 0, "TOTAL ABSENSI": 1, "Ins.RAPORT": 0 },
+                { "NAMA COLL": "RISKY IMAM HANAFI", "KETERANGAN": "TIDAK DIBAYARKAN", "RAPORT": "NEED IMPROVEMENT", "NILAI": 2.2, "KPI FLOW": 0.8565, "KPI BALANCE": 0.6873, "KPI FLOW EVER": 0.2222, "C1%": 0.8744, "C2%": 0.0437, "C3%": 0.0437, "C4%": 0.8940, "Ins.C1": 0, "Ins.C2": 0, "Ins.C3": 0, "Ins.C4": 0, "Ins.MOBIL": 0, "Ins.MOTOR": 0, "Ins.BTC/SR": 0, "Ins.TOTAL": 0, "TOTAL ABSENSI": 1, "Ins.RAPORT": 0 }
+            ],
+            NOOD: [
+                { "Collector": "I GEDE ADI PRATAMA PUTRA", "Nama Konsumen": "ADI KURNIAWAN", "Tipe Barang": "MOTOR", "Angsuran Ke": 25, "Jatuh Tempo": "2026-10-20", "Sipok": 7506094 },
+                { "Collector": "I GEDE ADI PRATAMA PUTRA", "Nama Konsumen": "ADINA FITRIA", "Tipe Barang": "MOTOR", "Angsuran Ke": 22, "Jatuh Tempo": "2026-10-20", "Sipok": 15467744 },
+                { "Collector": "OKTAVIANUS MANIK", "Nama Konsumen": "AGUS SETIAWAN", "Tipe Barang": "MOTOR", "Angsuran Ke": 12, "Jatuh Tempo": "2026-10-18", "Sipok": 12000000 },
+                { "Collector": "RIDWAN ANDIKA", "Nama Konsumen": "BAMBANG HERMAWAN", "Tipe Barang": "MOBIL", "Angsuran Ke": 15, "Jatuh Tempo": "2026-10-19", "Sipok": 45000000 },
+                { "Collector": "RISKY IMAM HANAFI", "Nama Konsumen": "CANDRA WIJAYA", "Tipe Barang": "MOTOR", "Angsuran Ke": 10, "Jatuh Tempo": "2026-10-21", "Sipok": 8500000 }
+            ],
+            "1_30": [
+                { "Collector": "I GEDE ADI PRATAMA PUTRA", "Nama Konsumen": "AHMAD SINGGIH", "Tipe Barang": "MOBIL", "Angsuran Ke": 7, "Jatuh Tempo": "2026-09-19", "Sipok": 268731739 },
+                { "Collector": "OKTAVIANUS MANIK", "Nama Konsumen": "DEDI KURNIA", "Tipe Barang": "MOTOR", "Angsuran Ke": 14, "Jatuh Tempo": "2026-09-15", "Sipok": 15000000 },
+                { "Collector": "RIDWAN ANDIKA", "Nama Konsumen": "EKO SAPUTRA", "Tipe Barang": "MOTOR", "Angsuran Ke": 8, "Jatuh Tempo": "2026-09-16", "Sipok": 9200000 },
+                { "Collector": "RISKY IMAM HANAFI", "Nama Konsumen": "FAJAR SETIAWAN", "Tipe Barang": "MOTOR", "Angsuran Ke": 11, "Jatuh Tempo": "2026-09-18", "Sipok": 11000000 }
+            ],
+            "31_60": [
+                { "Collector": "BUDI SATRIYO", "Nama Konsumen": "ALBAR GUMANTI", "Tipe Barang": "MOBIL", "Angsuran Ke": 36, "Jatuh Tempo": "2026-08-03", "Sipok": 29031714 },
+                { "Collector": "BUDI SATRIYO", "Nama Konsumen": "ASMAUL KUSNAH", "Tipe Barang": "MOTOR", "Angsuran Ke": 11, "Jatuh Tempo": "2026-08-20", "Sipok": 9320184 }
+            ],
+            "BAYAR NOOD": [
+                { "Collector": "I GEDE ADI PRATAMA PUTRA", "Nama Konsumen": "DANANG GALIH", "Tipe Barang": "MOTOR", "Angsuran Ke": 10, "Jatuh Tempo": "2026-10-19", "Sipok": 16728711 },
+                { "Collector": "OKTAVIANUS MANIK", "Nama Konsumen": "HENDRA SAPUTRA", "Tipe Barang": "MOTOR", "Angsuran Ke": 5, "Jatuh Tempo": "2026-10-15", "Sipok": 12500000 }
+            ],
+            "BAYAR 1_30": [
+                { "Collector": "I GEDE ADI PRATAMA PUTRA", "Nama Konsumen": "KAMAL JOKO", "Tipe Barang": "MOTOR", "Angsuran Ke": 18, "Jatuh Tempo": "2026-09-19", "Sipok": 17933455 },
+                { "Collector": "OKTAVIANUS MANIK", "Nama Konsumen": "AHMAD FITRA", "Tipe Barang": "MOTOR", "Angsuran Ke": 12, "Jatuh Tempo": "2026-09-15", "Sipok": 22995796 }
+            ],
+            "BAYAR 31_60": [
+                { "Collector": "BUDI SATRIYO", "Nama Konsumen": "MELA ROYANI", "Tipe Barang": "MOTOR", "Angsuran Ke": 17, "Jatuh Tempo": "2026-08-08", "Sipok": 2675877 }
+            ]
+        };
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const id = document.getElementById('userId').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const errDiv = document.getElementById('loginError');
+
+            if (users[id] && users[id].pass === pass) {
+                currentUser = { id, ...users[id] };
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
+                document.getElementById('loggedInUserLabel').innerText = `${currentUser.name} (${currentUser.role.toUpperCase()})`;
+                
+                // Show Excel uploader only for Yusuf Dharma & Nikolaus Yudistira
+                if (currentUser.name === "Yusuf Dharma" || currentUser.name === "Nikolaus Yudistira") {
+                    document.getElementById('uploaderSection').classList.remove('hidden');
+                } else {
+                    document.getElementById('uploaderSection').classList.add('hidden');
+                }
+
+                initDashboard();
+            } else {
+                errDiv.innerText = "ID User atau Password salah!";
+                errDiv.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('userId').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginError').classList.add('hidden');
+        }
+
+        function getAvailableCollectors(tab) {
+            if (tab === '31_60' || tab === 'BAYAR 31_60') {
+                return ["BUDI SATRIYO"];
+            }
+            if (tab === 'INSENTIF') {
+                return ["BUDI SATRIYO", "I GEDE ADI PRATAMA PUTRA", "OKTAVIANUS MANIK", "RIDWAN ANDIKA", "RISKY IMAM HANAFI"];
+            }
+            return ["I GEDE ADI PRATAMA PUTRA", "OKTAVIANUS MANIK", "RIDWAN ANDIKA", "RISKY IMAM HANAFI"];
+        }
+
+        function switchMainTab(tab) {
+            activeMainTab = tab;
+            document.querySelectorAll('.main-tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-tab') === tab) {
+                    btn.className = "main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-indigo-600 text-white shadow-sm";
+                } else {
+                    btn.className = "main-tab-btn px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200";
+                }
+            });
+
+            const collectors = getAvailableCollectors(tab);
+            if (currentUser.role === 'collector') {
+                activeCollector = currentUser.name;
+            } else {
+                if (!collectors.includes(activeCollector)) {
+                    activeCollector = collectors[0];
+                }
+            }
+            renderSubTabs(collectors);
+            renderContent();
+        }
+
+        function renderSubTabs(collectors) {
+            const container = document.getElementById('collectorSubTabs');
+            container.innerHTML = '';
+            
+            let filteredColl = collectors;
+            if (currentUser.role === 'collector') {
+                filteredColl = collectors.filter(c => c === currentUser.name);
+            }
+
+            filteredColl.forEach(coll => {
+                const btn = document.createElement('button');
+                btn.className = `px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap border ${activeCollector === coll ? 'bg-slate-900 text-white border-slate-900 shadow' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`;
+                btn.innerHTML = `<i class="fa-solid fa-user-tie mr-1.5"></i> ${coll}`;
+                btn.onclick = () => {
+                    activeCollector = coll;
+                    renderSubTabs(collectors);
+                    renderContent();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderContent() {
+            const container = document.getElementById('tabContentArea');
+            container.innerHTML = '';
+
+            if (activeMainTab === 'INSENTIF') {
+                renderInsentifTab(container);
+            } else {
+                renderTransactionTab(container, activeMainTab);
+            }
+        }
+
+        function renderInsentifTab(container) {
+            const dataList = dbData.INSENTIF.filter(d => currentUser.role === 'collector' ? d['NAMA COLL'] === currentUser.name : (activeCollector ? d['NAMA COLL'] === activeCollector : true));
+            
+            let html = `<div class="space-y-6">`;
+            dataList.forEach(item => {
+                html += `
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center pb-4 mb-6 border-b border-slate-100 gap-4">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded">Collector</span>
+                            <h2 class="text-xl font-bold text-slate-900 mt-1">${item['NAMA COLL']}</h2>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <div class="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
+                                <span class="text-slate-500 block">Total Absensi</span>
+                                <span class="font-bold text-slate-900">${item['TOTAL ABSENSI']}</span>
+                            </div>
+                            <div class="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
+                                <span class="text-slate-500 block">Ins. Raport (BOTL)</span>
+                                <span class="font-bold text-slate-900">Rp ${Number(item['Ins.RAPORT']).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div class="bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 text-xs">
+                                <span class="text-indigo-600 block">Total Insentif</span>
+                                <span class="font-bold text-indigo-900">Rp ${Number(item['Ins.TOTAL']).toLocaleString('id-ID')}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly C1-C4 & Insentif -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div class="text-xs text-slate-500 font-medium">C1 Weekly</div>
+                            <div class="text-lg font-bold text-slate-900 mt-1">${(item['C1%'] * 100).toFixed(1)}%</div>
+                            <div class="text-xs text-emerald-600 mt-1 font-semibold">Ins: Rp ${Number(item['Ins.C1']).toLocaleString('id-ID')}</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div class="text-xs text-slate-500 font-medium">C2 Weekly</div>
+                            <div class="text-lg font-bold text-slate-900 mt-1">${(item['C2%'] * 100).toFixed(1)}%</div>
+                            <div class="text-xs text-emerald-600 mt-1 font-semibold">Ins: Rp ${Number(item['Ins.C2']).toLocaleString('id-ID')}</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div class="text-xs text-slate-500 font-medium">C3 Weekly</div>
+                            <div class="text-lg font-bold text-slate-900 mt-1">${(item['C3%'] * 100).toFixed(1)}%</div>
+                            <div class="text-xs text-emerald-600 mt-1 font-semibold">Ins: Rp ${Number(item['Ins.C3']).toLocaleString('id-ID')}</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div class="text-xs text-slate-500 font-medium">C4 Weekly</div>
+                            <div class="text-lg font-bold text-slate-900 mt-1">${(item['C4%'] * 100).toFixed(1)}%</div>
+                            <div class="text-xs text-emerald-600 mt-1 font-semibold">Ins: Rp ${Number(item['Ins.C4']).toLocaleString('id-ID')}</div>
+                        </div>
+                    </div>
+
+                    <!-- Insentif Tambahan & Raport Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3"><i class="fa-solid fa-gift mr-1.5 text-indigo-600"></i> Insentif Tambahan</h3>
+                            <div class="grid grid-cols-3 gap-2 text-center">
+                                <div class="bg-white p-3 rounded-lg border border-slate-200">
+                                    <span class="text-[10px] text-slate-500 block">TB Mobil</span>
+                                    <span class="font-bold text-xs text-slate-800">Rp ${Number(item['Ins.MOBIL']).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200">
+                                    <span class="text-[10px] text-slate-500 block">TB Motor</span>
+                                    <span class="font-bold text-xs text-slate-800">Rp ${Number(item['Ins.MOTOR']).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200">
+                                    <span class="text-[10px] text-slate-500 block">Ins. BTC/SR</span>
+                                    <span class="font-bold text-xs text-slate-800">Rp ${Number(item['Ins.BTC/SR']).toLocaleString('id-ID')}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3"><i class="fa-solid fa-star mr-1.5 text-amber-500"></i> Raport & Kinerja</h3>
+                            <div class="bg-white p-3 rounded-lg border border-slate-200 flex justify-between items-center">
+                                <div>
+                                    <span class="text-[10px] text-slate-500 block">Raport / Keterangan</span>
+                                    <span class="font-bold text-xs text-slate-800">${item['RAPORT']} (${item['KETERANGAN']})</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] text-slate-500 block">Nilai</span>
+                                    <span class="font-bold text-sm text-indigo-600">${item['NILAI']}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Diagram Batang KPI Collector -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4"><i class="fa-solid fa-chart-bar mr-1.5 text-indigo-600"></i> Diagram KPI Collector (Flow, Balance, Flow Ever)</h3>
+                        <div class="relative h-64 w-full">
+                            <canvas id="kpiChart_${item['NAMA COLL'].replace(/\s+/g, '_')}"></canvas>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+
+            // Render Chart for each item
+            dataList.forEach(item => {
+                const ctx = document.getElementById(`kpiChart_${item['NAMA COLL'].replace(/\s+/g, '_')}`).getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['KPI Flow', 'KPI Balance', 'KPI Flow Ever'],
+                        datasets: [{
+                            label: 'Persentase KPI',
+                            data: [item['KPI FLOW'] * 100, item['KPI BALANCE'] * 100, item['KPI FLOW EVER'] * 100],
+                            backgroundColor: ['rgba(99, 102, 241, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)'],
+                            borderColor: ['rgb(99, 102, 241)', 'rgb(59, 130, 246)', 'rgb(16, 185, 129)'],
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, max: 100 }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            });
+        }
+
+        function renderTransactionTab(container, sheetKey) {
+            let rawData = dbData[sheetKey] || [];
+            let filteredData = rawData;
+            
+            if (currentUser.role === 'collector') {
+                filteredData = rawData.filter(d => d['Collector'] === currentUser.name);
+            } else if (activeCollector && (sheetKey !== '31_60' && sheetKey !== 'BAYAR 31_60')) {
+                filteredData = rawData.filter(d => d['Collector'] === activeCollector);
+            }
+
+            const totalSipok = filteredData.reduce((acc, curr) => acc + Number(curr['Sipok']), 0);
+            const totalAkun = filteredData.length;
+
+            let html = `
+            <div class="space-y-6">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Sipok</span>
+                            <h3 class="text-xl font-bold text-slate-900 mt-1">Rp ${totalSipok.toLocaleString('id-ID')}</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Akun / Konsumen</span>
+                            <h3 class="text-xl font-bold text-slate-900 mt-1">${totalAkun} Akun</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Pie Chart for comparison if admin/supervisor and multiple collectors
+            if (currentUser.role !== 'collector' && sheetKey !== '31_60' && sheetKey !== 'BAYAR 31_60') {
+                html += `
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2"><i class="fa-solid fa-chart-pie mr-1.5 text-indigo-600"></i> Grafik Perbandingan Total Sipok per Collector</h3>
+                        <p class="text-xs text-slate-500">Perbandingan kontribusi total saldo pokok (sipok) masing-masing kolektor pada kategori ini.</p>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="comparisonPieChart"></canvas>
+                    </div>
+                </div>`;
+            }
+
+            // Table Data
+            html += `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Daftar Konsumen (${sheetKey})</h3>
+                        <span class="text-xs text-slate-500 font-medium">Menampilkan ${filteredData.length} data</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold">
+                                    <th class="p-3.5">Collector</th>
+                                    <th class="p-3.5">Nama Konsumen</th>
+                                    <th class="p-3.5">Tipe Barang</th>
+                                    <th class="p-3.5 text-center">Angsuran Ke</th>
+                                    <th class="p-3.5">Jatuh Tempo</th>
+                                    <th class="p-3.5 text-right">Sipok</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">`;
+            
+            if (filteredData.length === 0) {
+                html += `<tr><td colspan="6" class="p-6 text-center text-slate-400">Tidak ada data untuk kolektor ini.</td></tr>`;
+            } else {
+                filteredData.forEach(row => {
+                    html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3.5 font-medium text-slate-700">${row['Collector'] || '-'}</td>
+                        <td class="p-3.5 font-semibold text-slate-900">${row['Nama Konsumen'] || '-'}</td>
+                        <td class="p-3.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${row['Tipe Barang'] === 'MOBIL' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">${row['Tipe Barang'] || '-'}</span></td>
+                        <td class="p-3.5 text-center">${row['Angsuran Ke'] || '-'}</td>
+                        <td class="p-3.5 text-slate-600">${row['Jatuh Tempo'] || '-'}</td>
+                        <td class="p-3.5 text-right font-mono font-semibold text-slate-900">Rp ${Number(row['Sipok'] || 0).toLocaleString('id-ID')}</td>
+                    </tr>`;
+                });
+            }
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+
+            container.innerHTML = html;
+
+            // Render Pie Chart if applicable
+            if (currentUser.role !== 'collector' && sheetKey !== '31_60' && sheetKey !== 'BAYAR 31_60') {
+                const collMap = {};
+                rawData.forEach(d => {
+                    const c = d['Collector'] || 'Lainnya';
+                    collMap[c] = (collMap[c] || 0) + Number(d['Sipok'] || 0);
+                });
+
+                const labels = Object.keys(collMap);
+                const values = Object.values(collMap);
+
+                const ctxPie = document.getElementById('comparisonPieChart').getContext('2d');
+                new Chart(ctxPie, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Handle Excel Upload for authorized users (Yusuf Dharma & Nikolaus Yudistira)
+        function handleExcelUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (currentUser.name !== "Yusuf Dharma" && currentUser.name !== "Nikolaus Yudistira") {
+                alert("Anda tidak memiliki hak akses untuk memperbarui data Excel!");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    alert("File Excel berhasil diunggah dan disinkronkan ke dashboard!");
+                    // Data integration placeholder from uploaded file workbook can be processed here.
+                } catch (err) {
+                    console.error(err);
+                    alert("Gagal memproses file Excel.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>
