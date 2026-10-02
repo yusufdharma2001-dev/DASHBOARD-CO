@@ -1,0 +1,17 @@
+import pandas as pd
+excel_path = 'Workbook2_2.xlsx'
+xls = pd.ExcelFile(excel_path)
+print("Sheet names:", xls.sheet_names)
+
+# Inspect INSENTIF
+df_ins = pd.read_excel(excel_path, sheet_name='INSENTIF', header=2)
+print("\n--- INSENTIF ---")
+print(df_ins.head())
+
+# Inspect other sheets
+for sh in ['NOOD', '1_30', '31_60', 'BAYAR NOOD', 'BAYAR 1_30', 'BAYAR 31_60']:
+    hdr = 4 if sh in ['NOOD', '1_30', '31_60'] else (5 if sh in ['BAYAR NOOD', 'BAYAR 1_30'] else 7)
+    df = pd.read_excel(excel_path, sheet_name=sh, header=hdr)
+    print(f"\n--- Sheet: {sh} (header={hdr}) ---")
+    print(df.head(2))
+    print("Columns:", df.columns.tolist())
